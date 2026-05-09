@@ -15,7 +15,6 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 RESTAURANT_NAME = "Foddie Hot & Specie Restaurant"
 APP_NAME = f"{RESTAURANT_NAME} Menu Software"
 RESTAURANT_PHONE = "+92 347 6821871"
-WHATSAPP_NUMBER = "923476821871"
 RESTAURANT_ADDRESS = "Clifton, Karachi"
 RECEIPT_DIR = "receipts"
 DB_FILE = os.environ.get("RESTAURANT_DB_PATH", "restaurant_data.db")
@@ -112,6 +111,18 @@ def init_database():
                 price INTEGER NOT NULL,
                 line_total INTEGER NOT NULL,
                 FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS customer_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL,
+                customer_name TEXT NOT NULL,
+                contact_number TEXT NOT NULL,
+                message TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'New'
             )
             """
         )
@@ -335,6 +346,33 @@ def get_order_detail(order_id):
     return order, lines
 
 
+def save_customer_message(customer_name, contact_number, message):
+    with connect_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO customer_messages (created_at, customer_name, contact_number, message)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                customer_name.strip() or "Guest",
+                contact_number.strip(),
+                message.strip(),
+            ),
+        )
+
+
+def get_customer_messages():
+    with connect_db() as conn:
+        return conn.execute(
+            """
+            SELECT id, created_at, customer_name, contact_number, message, status
+            FROM customer_messages
+            ORDER BY created_at DESC
+            """
+        ).fetchall()
+
+
 def reset_order():
     st.session_state.order = {}
     st.session_state.customer = ""
@@ -343,6 +381,7 @@ def reset_order():
     st.session_state.tax_percent = DEFAULT_TAX_PERCENT
     st.session_state.last_receipt = None
     st.session_state.last_pdf = None
+    st.session_state.chat_open = False
 
 
 def ensure_state():
@@ -536,7 +575,7 @@ st.markdown(
         padding: 18px;
         box-shadow: 0 12px 28px rgba(0,0,0,0.22);
     }
-    .whatsapp-float {
+    .chat-float {
         position: fixed;
         right: 22px;
         bottom: 22px;
@@ -544,21 +583,21 @@ st.markdown(
         display: flex;
         align-items: center;
         gap: 10px;
-        background: #25d366;
-        color: #07130b !important;
+        background: #ef1717;
+        color: #ffffff !important;
         padding: 12px 16px;
         border-radius: 999px;
         font-weight: 900;
         text-decoration: none !important;
-        box-shadow: 0 14px 30px rgba(37, 211, 102, 0.32);
+        box-shadow: 0 14px 30px rgba(239, 23, 23, 0.32);
         border: 2px solid rgba(255,255,255,0.2);
     }
-    .whatsapp-float:hover {
-        background: #30e578;
-        color: #07130b !important;
+    .chat-float:hover {
+        background: #ff2a2a;
+        color: #ffffff !important;
         text-decoration: none !important;
     }
-    .whatsapp-icon {
+    .chat-icon {
         display: inline-flex;
         width: 26px;
         height: 26px;
@@ -566,12 +605,20 @@ st.markdown(
         justify-content: center;
         border-radius: 999px;
         background: #ffffff;
-        color: #25d366;
+        color: #ef1717;
         font-size: 18px;
         font-weight: 900;
     }
+    .chat-panel {
+        background: #171717;
+        border: 1px solid #2b2b2b;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 14px 30px rgba(0,0,0,0.28);
+        margin: 12px 0 18px 0;
+    }
     @media (max-width: 700px) {
-        .whatsapp-float {
+        .chat-float {
             right: 14px;
             bottom: 14px;
             padding: 11px 13px;
@@ -607,15 +654,31 @@ st.markdown(
         </div>
       </div>
     </div>
-    <a class="whatsapp-float" href="https://wa.me/{WHATSAPP_NUMBER}?text=Assalam%20o%20Alaikum%2C%20mujhe%20order%20ke%20baray%20mein%20maloomat%20chahiye" target="_blank">
-      <span class="whatsapp-icon">W</span>
-      WhatsApp
-    </a>
     """,
     unsafe_allow_html=True,
 )
 
-order_tab, history_tab = st.tabs(["Order", "Sales History"])
+if st.button("Chat / Inquiry", key="open_chat_button"):
+    st.session_state.chat_open = not st.session_state.get("chat_open", False)
+
+if st.session_state.get("chat_open", False):
+    st.markdown('<div class="chat-panel">', unsafe_allow_html=True)
+    st.markdown("### Customer Inquiry")
+    with st.form("customer_inquiry_form", clear_on_submit=True):
+        inquiry_cols = st.columns(2)
+        inquiry_name = inquiry_cols[0].text_input("Name")
+        inquiry_phone = inquiry_cols[1].text_input("Contact Number")
+        inquiry_message = st.text_area("Message", placeholder="Apna order ya sawal yahan likhein")
+        submitted = st.form_submit_button("Send Message")
+        if submitted:
+            if not inquiry_phone.strip() or not inquiry_message.strip():
+                st.error("Contact number aur message zaroor likhein.")
+            else:
+                save_customer_message(inquiry_name, inquiry_phone, inquiry_message)
+                st.success("Message received. Restaurant team aap se rabta karegi.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+order_tab, history_tab, messages_tab = st.tabs(["Order", "Sales History", "Customer Messages"])
 
 with order_tab:
     left, right = st.columns([1.35, 1], gap="large")
@@ -832,3 +895,34 @@ with history_tab:
             )
     else:
         st.info("Is date range mein koi saved bill nahi mila.")
+
+with messages_tab:
+    st.subheader("Customer Messages")
+    messages = get_customer_messages()
+    if messages:
+        message_rows = [
+            {
+                "ID": row[0],
+                "Date": row[1],
+                "Name": row[2],
+                "Contact": row[3],
+                "Message": row[4],
+                "Status": row[5],
+            }
+            for row in messages
+        ]
+        st.dataframe(message_rows, use_container_width=True, hide_index=True)
+
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["ID", "Date", "Name", "Contact", "Message", "Status"])
+        for row in messages:
+            writer.writerow(row)
+        st.download_button(
+            "Download Messages CSV",
+            data=output.getvalue(),
+            file_name=f"customer_messages_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv",
+        )
+    else:
+        st.info("Abhi koi customer message nahi mila.")
