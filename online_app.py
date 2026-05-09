@@ -583,8 +583,7 @@ st.markdown(
     .food-img {
         width: 100% !important;
         height: 220px;
-        background-size: cover;
-        background-position: center;
+        object-fit: cover;
         display: block;
     }
     .food-body {
@@ -761,7 +760,7 @@ with order_tab:
                         f"""
                         <div class="food-card">
                           <div class="discount-badge">{DEFAULT_DISCOUNT_PERCENT}% OFF</div>
-                          <div class="food-img" style="background-image:url('{image_url}')"></div>
+                          <img class="food-img" src="{image_url}" alt="{menu_item.name}">
                           <div class="food-body">
                             <div class="food-name">{menu_item.name}</div>
                             <div class="food-meta">{menu_item.category}</div>
