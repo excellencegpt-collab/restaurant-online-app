@@ -4,6 +4,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from io import BytesIO, StringIO
+from urllib.parse import quote_plus
 
 import streamlit as st
 from reportlab.lib import colors
@@ -20,6 +21,7 @@ RECEIPT_DIR = "receipts"
 DB_FILE = os.environ.get("RESTAURANT_DB_PATH", "restaurant_data.db")
 DEFAULT_DISCOUNT_PERCENT = 5
 DEFAULT_TAX_PERCENT = 10
+ORDER_TYPES = ["Dine In", "Take Away", "Online Delivery"]
 
 
 @dataclass(frozen=True)
@@ -74,6 +76,38 @@ CATEGORY_IMAGES = {
     "Drinks": "https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80",
 }
 
+ITEM_IMAGE_QUERIES = {
+    "French Fries": "loaded french fries restaurant",
+    "Masala Fries": "spicy masala fries",
+    "Chicken Nuggets": "chicken nuggets",
+    "Garlic Mayo Fries": "garlic mayo fries",
+    "Loaded Fries": "loaded cheese fries",
+    "Zinger Burger": "crispy chicken zinger burger",
+    "Chicken Burger": "chicken burger",
+    "Beef Burger": "beef burger",
+    "Cheese Burger": "cheese burger",
+    "Double Patty Burger": "double patty burger",
+    "Chicken Shawarma": "chicken shawarma wrap",
+    "Zinger Shawarma": "crispy chicken shawarma",
+    "Club Sandwich": "club sandwich",
+    "Chicken Roll Paratha": "chicken paratha roll",
+    "Pizza Fries": "pizza fries",
+    "Chicken Tikka": "chicken tikka bbq",
+    "Chicken Malai Boti": "malai boti bbq",
+    "Chicken Seekh Kabab": "chicken seekh kabab",
+    "Beef Seekh Kabab": "beef seekh kabab",
+    "BBQ Platter": "bbq platter grill",
+    "Small Pizza": "cheese pizza",
+    "Medium Pizza": "pepperoni pizza",
+    "Large Pizza": "large pizza",
+    "Special Pizza": "special pizza",
+    "Soft Drink": "cola soft drink glass",
+    "Mineral Water": "mineral water bottle",
+    "Fresh Lime": "fresh lime soda",
+    "Tea": "hot tea cup",
+    "Coffee": "hot coffee cup",
+}
+
 
 def connect_db():
     return sqlite3.connect(DB_FILE)
@@ -95,10 +129,17 @@ def init_database():
                 tax_percent INTEGER NOT NULL,
                 tax_amount INTEGER NOT NULL,
                 grand_total INTEGER NOT NULL,
-                pdf_path TEXT
+                pdf_path TEXT,
+                order_type TEXT NOT NULL DEFAULT 'Dine In',
+                delivery_address TEXT NOT NULL DEFAULT ''
             )
             """
         )
+        existing_columns = [row[1] for row in conn.execute("PRAGMA table_info(orders)").fetchall()]
+        if "order_type" not in existing_columns:
+            conn.execute("ALTER TABLE orders ADD COLUMN order_type TEXT NOT NULL DEFAULT 'Dine In'")
+        if "delivery_address" not in existing_columns:
+            conn.execute("ALTER TABLE orders ADD COLUMN delivery_address TEXT NOT NULL DEFAULT ''")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS order_lines (
@@ -135,6 +176,11 @@ def find_item(code):
     raise KeyError(code)
 
 
+def item_image_url(menu_item):
+    query = ITEM_IMAGE_QUERIES.get(menu_item.name, menu_item.category)
+    return f"https://source.unsplash.com/900x650/?{quote_plus(query)}"
+
+
 def make_receipt_no():
     return datetime.now().strftime("R%Y%m%d%H%M%S")
 
@@ -148,7 +194,7 @@ def order_summary(order, discount_percent, tax_percent):
     return subtotal, discount_amount, tax_amount, grand_total
 
 
-def create_slip_pdf(order, customer, table_no, discount_percent, tax_percent, receipt_no):
+def create_slip_pdf(order, customer, table_no, order_type, delivery_address, discount_percent, tax_percent, receipt_no):
     subtotal, discount_amount, tax_amount, grand_total = order_summary(order, discount_percent, tax_percent)
     now = datetime.now().strftime("%d-%m-%Y %I:%M %p")
     page_width = 80 * mm
@@ -196,6 +242,8 @@ def create_slip_pdf(order, customer, table_no, discount_percent, tax_percent, re
             ["Date", now],
             ["Customer", customer or "Walk-in"],
             ["Table", table_no or "-"],
+            ["Order Type", order_type],
+            ["Address", delivery_address or "-"],
         ],
         colWidths=[22 * mm, 50 * mm],
     )
@@ -274,7 +322,7 @@ def create_slip_pdf(order, customer, table_no, discount_percent, tax_percent, re
     return buffer.getvalue()
 
 
-def save_order(order, customer, table_no, discount_percent, tax_percent, receipt_no, pdf_path=""):
+def save_order(order, customer, table_no, order_type, delivery_address, discount_percent, tax_percent, receipt_no, pdf_path=""):
     subtotal, discount_amount, tax_amount, grand_total = order_summary(order, discount_percent, tax_percent)
     with connect_db() as conn:
         cursor = conn.execute(
@@ -282,9 +330,9 @@ def save_order(order, customer, table_no, discount_percent, tax_percent, receipt
             INSERT INTO orders (
                 receipt_no, created_at, customer, table_no, subtotal,
                 discount_percent, discount_amount, tax_percent, tax_amount,
-                grand_total, pdf_path
+                grand_total, pdf_path, order_type, delivery_address
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 receipt_no,
@@ -298,6 +346,8 @@ def save_order(order, customer, table_no, discount_percent, tax_percent, receipt
                 tax_amount,
                 grand_total,
                 pdf_path,
+                order_type,
+                delivery_address or "",
             ),
         )
         order_id = cursor.lastrowid
@@ -316,7 +366,7 @@ def save_order(order, customer, table_no, discount_percent, tax_percent, receipt
 def get_orders(from_day, to_day, query):
     params = [f"{from_day} 00:00:00", f"{to_day} 23:59:59"]
     sql = """
-        SELECT id, receipt_no, created_at, customer, table_no, grand_total
+        SELECT id, receipt_no, created_at, customer, table_no, grand_total, order_type, delivery_address
         FROM orders
         WHERE created_at BETWEEN ? AND ?
     """
@@ -334,7 +384,8 @@ def get_order_detail(order_id):
         order = conn.execute(
             """
             SELECT receipt_no, created_at, customer, table_no, subtotal,
-                   discount_percent, discount_amount, tax_percent, tax_amount, grand_total
+                   discount_percent, discount_amount, tax_percent, tax_amount, grand_total,
+                   order_type, delivery_address
             FROM orders WHERE id = ?
             """,
             (order_id,),
@@ -377,6 +428,8 @@ def reset_order():
     st.session_state.order = {}
     st.session_state.customer = ""
     st.session_state.table_no = ""
+    st.session_state.order_type = "Dine In"
+    st.session_state.delivery_address = ""
     st.session_state.discount_percent = DEFAULT_DISCOUNT_PERCENT
     st.session_state.tax_percent = DEFAULT_TAX_PERCENT
     st.session_state.last_receipt = None
@@ -703,7 +756,7 @@ with order_tab:
             card_cols = st.columns(2)
             for card_col, menu_item in zip(card_cols, row_items):
                 with card_col:
-                    image_url = CATEGORY_IMAGES.get(menu_item.category, HERO_IMAGE_URL)
+                    image_url = item_image_url(menu_item)
                     st.markdown(
                         f"""
                         <div class="food-card">
@@ -739,6 +792,19 @@ with order_tab:
         info_cols = st.columns(2)
         st.session_state.customer = info_cols[0].text_input("Customer", value=st.session_state.customer)
         st.session_state.table_no = info_cols[1].text_input("Table", value=st.session_state.table_no)
+        st.session_state.order_type = st.selectbox(
+            "Order Type",
+            ORDER_TYPES,
+            index=ORDER_TYPES.index(st.session_state.get("order_type", "Dine In")),
+        )
+        if st.session_state.order_type == "Online Delivery":
+            st.session_state.delivery_address = st.text_area(
+                "Delivery Address",
+                value=st.session_state.get("delivery_address", ""),
+                placeholder="Delivery address yahan likhein",
+            )
+        else:
+            st.session_state.delivery_address = ""
 
         calc_cols = st.columns(2)
         st.session_state.discount_percent = calc_cols[0].number_input(
@@ -799,6 +865,8 @@ with order_tab:
                     st.session_state.order,
                     st.session_state.customer,
                     st.session_state.table_no,
+                    st.session_state.order_type,
+                    st.session_state.delivery_address,
                     int(st.session_state.discount_percent),
                     int(st.session_state.tax_percent),
                     receipt_no,
@@ -811,6 +879,8 @@ with order_tab:
                     st.session_state.order,
                     st.session_state.customer,
                     st.session_state.table_no,
+                    st.session_state.order_type,
+                    st.session_state.delivery_address,
                     int(st.session_state.discount_percent),
                     int(st.session_state.tax_percent),
                     receipt_no,
@@ -858,6 +928,8 @@ with history_tab:
                 "Customer": row[3],
                 "Table": row[4],
                 "Grand Total": money(row[5]),
+                "Order Type": row[6],
+                "Delivery Address": row[7],
             }
             for row in orders
         ]
@@ -865,7 +937,7 @@ with history_tab:
 
         output = StringIO()
         writer = csv.writer(output)
-        writer.writerow(["ID", "Receipt", "Date", "Customer", "Table", "Grand Total"])
+        writer.writerow(["ID", "Receipt", "Date", "Customer", "Table", "Grand Total", "Order Type", "Delivery Address"])
         for row in orders:
             writer.writerow(row)
         st.download_button(
@@ -887,7 +959,12 @@ with history_tab:
                 {"Item": line[0], "Qty": line[1], "Rate": money(line[2]), "Amount": money(line[3])}
                 for line in lines
             ]
-            st.write(f"Receipt: **{order[0]}** | Date: **{order[1]}** | Customer: **{order[2]}** | Table: **{order[3]}**")
+            st.write(
+                f"Receipt: **{order[0]}** | Date: **{order[1]}** | Customer: **{order[2]}** | "
+                f"Table: **{order[3]}** | Type: **{order[10]}**"
+            )
+            if order[11]:
+                st.write(f"Delivery Address: **{order[11]}**")
             st.dataframe(detail_rows, use_container_width=True, hide_index=True)
             st.write(
                 f"Subtotal: **{money(order[4])}** | Discount {order[5]}%: **{money(order[6])}** | "
