@@ -14,6 +14,8 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 RESTAURANT_NAME = "Foddie Hot & Specie Restaurant"
 APP_NAME = f"{RESTAURANT_NAME} Menu Software"
+RESTAURANT_PHONE = "+92 347 6821871"
+RESTAURANT_ADDRESS = "Clifton, Karachi"
 RECEIPT_DIR = "receipts"
 DB_FILE = os.environ.get("RESTAURANT_DB_PATH", "restaurant_data.db")
 DEFAULT_DISCOUNT_PERCENT = 5
@@ -61,15 +63,15 @@ MENU_ITEMS = [
 ]
 
 
-HERO_IMAGE_URL = "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1600&q=80"
+HERO_IMAGE_URL = "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1600&q=80"
 
 CATEGORY_IMAGES = {
-    "Starters": "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&q=80",
-    "Burgers": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80",
-    "Fast Food": "https://images.unsplash.com/photo-1619881590738-a111d176d906?auto=format&fit=crop&w=600&q=80",
-    "BBQ": "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=600&q=80",
-    "Pizza": "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80",
-    "Drinks": "https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=600&q=80",
+    "Starters": "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=900&q=80",
+    "Burgers": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=80",
+    "Fast Food": "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=900&q=80",
+    "BBQ": "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=900&q=80",
+    "Pizza": "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=900&q=80",
+    "Drinks": "https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80",
 }
 
 
@@ -171,6 +173,7 @@ def create_slip_pdf(order, customer, table_no, discount_percent, tax_percent, re
     story = [
         Paragraph(RESTAURANT_NAME.upper(), title_style),
         Paragraph("Fresh - Tasty - Quality", center_style),
+        Paragraph(f"{RESTAURANT_PHONE} | {RESTAURANT_ADDRESS}", center_style),
         Paragraph("Computerized Sales Receipt", center_style),
         Paragraph(separator, center_style),
     ]
@@ -357,71 +360,183 @@ ensure_state()
 st.markdown(
     """
     <style>
-    .block-container {padding-top: 1.2rem; padding-bottom: 2rem;}
+    .stApp {
+        background:
+            radial-gradient(circle at top left, rgba(239, 68, 68, 0.18), transparent 28rem),
+            linear-gradient(180deg, #070707 0%, #111111 52%, #090909 100%);
+        color: #f8fafc;
+    }
+    .block-container {padding-top: 1.2rem; padding-bottom: 2rem; max-width: 1480px;}
+    h1, h2, h3, h4, h5, h6, p, label, span {color: #f8fafc;}
     [data-testid="stMetricValue"] {font-size: 1.3rem;}
-    .receipt-box {border:1px solid #ddd; padding:12px; border-radius:6px; background:#fff;}
+    [data-testid="stTabs"] button {color: #f8fafc;}
+    [data-testid="stTabs"] button[aria-selected="true"] {color: #ff2a2a;}
+    [data-testid="stHorizontalBlock"] {align-items: stretch;}
+    .stSelectbox div[data-baseweb="select"],
+    .stTextInput input,
+    .stNumberInput input {
+        background: #1c1c1c !important;
+        border-color: #333333 !important;
+        color: #ffffff !important;
+    }
+    .stAlert {
+        background: #171717 !important;
+        border: 1px solid #2b2b2b !important;
+        color: #f8fafc !important;
+    }
+    .stDataFrame {
+        border: 1px solid #2b2b2b;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .stButton > button,
+    .stDownloadButton > button {
+        background: #ef1717 !important;
+        color: #ffffff !important;
+        border: 0 !important;
+        border-radius: 999px !important;
+        font-weight: 800 !important;
+        min-height: 42px;
+        box-shadow: 0 8px 18px rgba(239, 23, 23, 0.22);
+    }
+    .stButton > button:hover,
+    .stDownloadButton > button:hover {
+        background: #ff2a2a !important;
+        color: #ffffff !important;
+    }
+    .topbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+    .top-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #ef1717;
+        color: white;
+        padding: 10px 14px;
+        border-radius: 7px;
+        font-weight: 800;
+        line-height: 1.1;
+        box-shadow: 0 8px 20px rgba(239, 23, 23, 0.22);
+    }
+    .top-pill small {
+        display: block;
+        color: #ffe1e1;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .brand-chip {
+        background: #171717;
+        color: #ffffff;
+        border: 1px solid #2b2b2b;
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-weight: 900;
+        letter-spacing: 0.2px;
+    }
     .hero-wrap {
         position: relative;
-        min-height: 220px;
-        border-radius: 10px;
+        min-height: 310px;
+        border-radius: 12px;
         overflow: hidden;
-        margin: 0.8rem 0 1.2rem 0;
+        margin: 0.4rem 0 1.4rem 0;
         background-size: cover;
         background-position: center;
-        border: 1px solid #e5e7eb;
+        border: 1px solid #2b2b2b;
+        box-shadow: 0 18px 46px rgba(0,0,0,0.42);
     }
     .hero-overlay {
         position: absolute;
         inset: 0;
-        background: linear-gradient(90deg, rgba(0,0,0,0.72), rgba(0,0,0,0.18));
+        background: linear-gradient(90deg, rgba(0,0,0,0.86), rgba(0,0,0,0.32));
         display: flex;
         align-items: center;
-        padding: 24px;
+        padding: 28px;
     }
     .hero-title {
         color: white;
-        font-size: 34px;
+        font-size: 44px;
         font-weight: 800;
         line-height: 1.08;
         margin-bottom: 8px;
+        max-width: 800px;
     }
     .hero-subtitle {
-        color: #f6e7bd;
+        color: #ffdf8c;
         font-size: 15px;
         max-width: 520px;
     }
+    .hero-note {
+        color: #ffffff;
+        margin-top: 18px;
+        font-weight: 700;
+    }
     .food-card {
-        border: 1px solid #e7e7e7;
-        border-radius: 10px;
+        position: relative;
+        border: 1px solid #2c2c2c;
+        border-radius: 12px;
         overflow: hidden;
-        background: white;
-        margin-bottom: 14px;
-        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+        background: #181818;
+        margin-bottom: 10px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
     }
     .food-img {
-        width: 100%;
-        height: 118px;
-        object-fit: cover;
+        width: 100% !important;
+        height: 220px;
+        background-size: cover;
+        background-position: center;
         display: block;
     }
     .food-body {
-        padding: 10px 12px 2px 12px;
+        padding: 14px 16px 12px 16px;
     }
     .food-name {
         font-weight: 700;
-        font-size: 16px;
-        color: #111827;
+        font-size: 18px;
+        color: #ffffff;
     }
     .food-meta {
-        color: #6b7280;
+        color: #b8b8b8;
         font-size: 12px;
-        margin-top: 2px;
+        margin-top: 4px;
     }
     .food-price {
-        color: #9a3412;
+        display: inline-block;
+        color: #ffffff;
+        background: #0f3f9b;
+        border-radius: 999px;
+        padding: 5px 10px;
         font-weight: 800;
-        font-size: 16px;
-        margin-top: 8px;
+        font-size: 14px;
+        margin-top: 12px;
+    }
+    .discount-badge {
+        position: absolute;
+        right: 0;
+        top: 0;
+        background: #ffd400;
+        color: #050505;
+        font-size: 12px;
+        font-weight: 900;
+        padding: 7px 12px;
+        border-bottom-left-radius: 10px;
+    }
+    .order-panel {
+        background: #171717;
+        border: 1px solid #2b2b2b;
+        border-radius: 12px;
+        padding: 18px;
+        box-shadow: 0 12px 28px rgba(0,0,0,0.22);
+    }
+    .section-title {
+        color: #ffffff;
+        font-size: 28px;
+        font-weight: 900;
+        margin-bottom: 18px;
     }
     </style>
     """,
@@ -430,11 +545,19 @@ st.markdown(
 
 st.markdown(
     f"""
+    <div class="topbar">
+      <div>
+        <span class="top-pill">Phone<br><small>{RESTAURANT_PHONE}</small></span>
+        <span class="top-pill">Address<br><small>{RESTAURANT_ADDRESS}</small></span>
+      </div>
+      <div class="brand-chip">{RESTAURANT_NAME}</div>
+    </div>
     <div class="hero-wrap" style="background-image:url('{HERO_IMAGE_URL}')">
       <div class="hero-overlay">
         <div>
           <div class="hero-title">{RESTAURANT_NAME}</div>
           <div class="hero-subtitle">Online Menu, Billing, PDF Receipt and Sales History</div>
+          <div class="hero-note">Fast food, BBQ, pizza, burgers and fresh drinks in Clifton.</div>
         </div>
       </div>
     </div>
@@ -448,7 +571,7 @@ with order_tab:
     left, right = st.columns([1.35, 1], gap="large")
 
     with left:
-        st.subheader("Menu")
+        st.markdown('<div class="section-title">Menu</div>', unsafe_allow_html=True)
         filter_cols = st.columns([1, 1])
         categories = ["All"] + sorted({item.category for item in MENU_ITEMS})
         category = filter_cols[0].selectbox("Category", categories)
@@ -471,7 +594,8 @@ with order_tab:
                     st.markdown(
                         f"""
                         <div class="food-card">
-                          <img class="food-img" src="{image_url}" alt="{menu_item.name}">
+                          <div class="discount-badge">{DEFAULT_DISCOUNT_PERCENT}% OFF</div>
+                          <div class="food-img" style="background-image:url('{image_url}')"></div>
                           <div class="food-body">
                             <div class="food-name">{menu_item.name}</div>
                             <div class="food-meta">{menu_item.category}</div>
@@ -497,7 +621,8 @@ with order_tab:
                         st.rerun()
 
     with right:
-        st.subheader("Current Order")
+        st.markdown('<div class="order-panel">', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Current Order</div>', unsafe_allow_html=True)
         info_cols = st.columns(2)
         st.session_state.customer = info_cols[0].text_input("Customer", value=st.session_state.customer)
         st.session_state.table_no = info_cols[1].text_input("Table", value=st.session_state.table_no)
@@ -596,6 +721,7 @@ with order_tab:
                 )
         else:
             st.info("Menu se item add karein. Order yahan show hoga.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
 with history_tab:
     st.subheader("Sales History")
