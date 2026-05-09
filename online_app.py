@@ -12,7 +12,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 
-APP_NAME = "S J Restaurant Menu Software"
+APP_NAME = "Foddies Hot & Specie Restaurant Menu"
 RECEIPT_DIR = "receipts"
 DB_FILE = os.environ.get("RESTAURANT_DB_PATH", "restaurant_data.db")
 DEFAULT_DISCOUNT_PERCENT = 5
