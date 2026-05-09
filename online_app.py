@@ -4,7 +4,6 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from io import BytesIO, StringIO
-from urllib.parse import quote_plus
 
 import streamlit as st
 from reportlab.lib import colors
@@ -76,36 +75,36 @@ CATEGORY_IMAGES = {
     "Drinks": "https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80",
 }
 
-ITEM_IMAGE_QUERIES = {
-    "French Fries": "loaded french fries restaurant",
-    "Masala Fries": "spicy masala fries",
-    "Chicken Nuggets": "chicken nuggets",
-    "Garlic Mayo Fries": "garlic mayo fries",
-    "Loaded Fries": "loaded cheese fries",
-    "Zinger Burger": "crispy chicken zinger burger",
-    "Chicken Burger": "chicken burger",
-    "Beef Burger": "beef burger",
-    "Cheese Burger": "cheese burger",
-    "Double Patty Burger": "double patty burger",
-    "Chicken Shawarma": "chicken shawarma wrap",
-    "Zinger Shawarma": "crispy chicken shawarma",
-    "Club Sandwich": "club sandwich",
-    "Chicken Roll Paratha": "chicken paratha roll",
-    "Pizza Fries": "pizza fries",
-    "Chicken Tikka": "chicken tikka bbq",
-    "Chicken Malai Boti": "malai boti bbq",
-    "Chicken Seekh Kabab": "chicken seekh kabab",
-    "Beef Seekh Kabab": "beef seekh kabab",
-    "BBQ Platter": "bbq platter grill",
-    "Small Pizza": "cheese pizza",
-    "Medium Pizza": "pepperoni pizza",
-    "Large Pizza": "large pizza",
-    "Special Pizza": "special pizza",
-    "Soft Drink": "cola soft drink glass",
-    "Mineral Water": "mineral water bottle",
-    "Fresh Lime": "fresh lime soda",
-    "Tea": "hot tea cup",
-    "Coffee": "hot coffee cup",
+ITEM_IMAGE_URLS = {
+    "French Fries": "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=900&q=80",
+    "Masala Fries": "https://images.unsplash.com/photo-1630431341973-02e1b662ec35?auto=format&fit=crop&w=900&q=80",
+    "Chicken Nuggets": "https://images.unsplash.com/photo-1562967916-eb82221dfb92?auto=format&fit=crop&w=900&q=80",
+    "Garlic Mayo Fries": "https://images.unsplash.com/photo-1576107232684-1279f390859f?auto=format&fit=crop&w=900&q=80",
+    "Loaded Fries": "https://images.unsplash.com/photo-1585109649139-366815a0d713?auto=format&fit=crop&w=900&q=80",
+    "Zinger Burger": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=80",
+    "Chicken Burger": "https://images.unsplash.com/photo-1606755962773-d324e2dabdff?auto=format&fit=crop&w=900&q=80",
+    "Beef Burger": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=900&q=80",
+    "Cheese Burger": "https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=900&q=80",
+    "Double Patty Burger": "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=900&q=80",
+    "Chicken Shawarma": "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=900&q=80",
+    "Zinger Shawarma": "https://images.unsplash.com/photo-1662116765994-1e4200c43589?auto=format&fit=crop&w=900&q=80",
+    "Club Sandwich": "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=900&q=80",
+    "Chicken Roll Paratha": "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=900&q=80",
+    "Pizza Fries": "https://images.unsplash.com/photo-1576107232684-1279f390859f?auto=format&fit=crop&w=900&q=80",
+    "Chicken Tikka": "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?auto=format&fit=crop&w=900&q=80",
+    "Chicken Malai Boti": "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=900&q=80",
+    "Chicken Seekh Kabab": "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?auto=format&fit=crop&w=900&q=80",
+    "Beef Seekh Kabab": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=900&q=80",
+    "BBQ Platter": "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=900&q=80",
+    "Small Pizza": "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=900&q=80",
+    "Medium Pizza": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=900&q=80",
+    "Large Pizza": "https://images.unsplash.com/photo-1594007654729-407eedc4be65?auto=format&fit=crop&w=900&q=80",
+    "Special Pizza": "https://images.unsplash.com/photo-1571997478779-2adcbbe9ab2f?auto=format&fit=crop&w=900&q=80",
+    "Soft Drink": "https://images.unsplash.com/photo-1581636625402-29b2a704ef13?auto=format&fit=crop&w=900&q=80",
+    "Mineral Water": "https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=900&q=80",
+    "Fresh Lime": "https://images.unsplash.com/photo-1621263764928-df1444c5e859?auto=format&fit=crop&w=900&q=80",
+    "Tea": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=900&q=80",
+    "Coffee": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=900&q=80",
 }
 
 
@@ -177,8 +176,7 @@ def find_item(code):
 
 
 def item_image_url(menu_item):
-    query = ITEM_IMAGE_QUERIES.get(menu_item.name, menu_item.category)
-    return f"https://source.unsplash.com/900x650/?{quote_plus(query)}"
+    return ITEM_IMAGE_URLS.get(menu_item.name, CATEGORY_IMAGES.get(menu_item.category, HERO_IMAGE_URL))
 
 
 def make_receipt_no():
