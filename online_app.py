@@ -15,6 +15,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 RESTAURANT_NAME = "Foddie Hot & Specie Restaurant"
 APP_NAME = f"{RESTAURANT_NAME} Menu Software"
 RESTAURANT_PHONE = "+92 347 6821871"
+WHATSAPP_NUMBER = "923476821871"
 RESTAURANT_ADDRESS = "Clifton, Karachi"
 RECEIPT_DIR = "receipts"
 DB_FILE = os.environ.get("RESTAURANT_DB_PATH", "restaurant_data.db")
@@ -366,7 +367,7 @@ st.markdown(
             linear-gradient(180deg, #070707 0%, #111111 52%, #090909 100%);
         color: #f8fafc;
     }
-    .block-container {padding-top: 1.2rem; padding-bottom: 2rem; max-width: 1480px;}
+    .block-container {padding-top: 3.8rem; padding-bottom: 2rem; max-width: 1480px;}
     h1, h2, h3, h4, h5, h6, p, label, span {color: #f8fafc;}
     [data-testid="stMetricValue"] {font-size: 1.3rem;}
     [data-testid="stTabs"] button {color: #f8fafc;}
@@ -409,7 +410,8 @@ st.markdown(
         justify-content: space-between;
         gap: 12px;
         align-items: center;
-        margin-bottom: 16px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
     }
     .top-pill {
         display: inline-flex;
@@ -417,11 +419,12 @@ st.markdown(
         gap: 8px;
         background: #ef1717;
         color: white;
-        padding: 10px 14px;
+        padding: 12px 16px;
         border-radius: 7px;
         font-weight: 800;
         line-height: 1.1;
         box-shadow: 0 8px 20px rgba(239, 23, 23, 0.22);
+        margin: 0 8px 8px 0;
     }
     .top-pill small {
         display: block;
@@ -437,6 +440,7 @@ st.markdown(
         padding: 10px 18px;
         font-weight: 900;
         letter-spacing: 0.2px;
+        margin-bottom: 8px;
     }
     .hero-wrap {
         position: relative;
@@ -532,6 +536,48 @@ st.markdown(
         padding: 18px;
         box-shadow: 0 12px 28px rgba(0,0,0,0.22);
     }
+    .whatsapp-float {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #25d366;
+        color: #07130b !important;
+        padding: 12px 16px;
+        border-radius: 999px;
+        font-weight: 900;
+        text-decoration: none !important;
+        box-shadow: 0 14px 30px rgba(37, 211, 102, 0.32);
+        border: 2px solid rgba(255,255,255,0.2);
+    }
+    .whatsapp-float:hover {
+        background: #30e578;
+        color: #07130b !important;
+        text-decoration: none !important;
+    }
+    .whatsapp-icon {
+        display: inline-flex;
+        width: 26px;
+        height: 26px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #25d366;
+        font-size: 18px;
+        font-weight: 900;
+    }
+    @media (max-width: 700px) {
+        .whatsapp-float {
+            right: 14px;
+            bottom: 14px;
+            padding: 11px 13px;
+            font-size: 13px;
+        }
+    }
     .section-title {
         color: #ffffff;
         font-size: 28px;
@@ -561,6 +607,10 @@ st.markdown(
         </div>
       </div>
     </div>
+    <a class="whatsapp-float" href="https://wa.me/{WHATSAPP_NUMBER}?text=Assalam%20o%20Alaikum%2C%20mujhe%20order%20ke%20baray%20mein%20maloomat%20chahiye" target="_blank">
+      <span class="whatsapp-icon">W</span>
+      WhatsApp
+    </a>
     """,
     unsafe_allow_html=True,
 )
