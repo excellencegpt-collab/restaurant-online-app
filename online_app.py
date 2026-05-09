@@ -61,6 +61,18 @@ MENU_ITEMS = [
 ]
 
 
+HERO_IMAGE_URL = "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1600&q=80"
+
+CATEGORY_IMAGES = {
+    "Starters": "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&q=80",
+    "Burgers": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80",
+    "Fast Food": "https://images.unsplash.com/photo-1619881590738-a111d176d906?auto=format&fit=crop&w=600&q=80",
+    "BBQ": "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=600&q=80",
+    "Pizza": "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80",
+    "Drinks": "https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=600&q=80",
+}
+
+
 def connect_db():
     return sqlite3.connect(DB_FILE)
 
@@ -348,13 +360,87 @@ st.markdown(
     .block-container {padding-top: 1.2rem; padding-bottom: 2rem;}
     [data-testid="stMetricValue"] {font-size: 1.3rem;}
     .receipt-box {border:1px solid #ddd; padding:12px; border-radius:6px; background:#fff;}
+    .hero-wrap {
+        position: relative;
+        min-height: 220px;
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 0.8rem 0 1.2rem 0;
+        background-size: cover;
+        background-position: center;
+        border: 1px solid #e5e7eb;
+    }
+    .hero-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, rgba(0,0,0,0.72), rgba(0,0,0,0.18));
+        display: flex;
+        align-items: center;
+        padding: 24px;
+    }
+    .hero-title {
+        color: white;
+        font-size: 34px;
+        font-weight: 800;
+        line-height: 1.08;
+        margin-bottom: 8px;
+    }
+    .hero-subtitle {
+        color: #f6e7bd;
+        font-size: 15px;
+        max-width: 520px;
+    }
+    .food-card {
+        border: 1px solid #e7e7e7;
+        border-radius: 10px;
+        overflow: hidden;
+        background: white;
+        margin-bottom: 14px;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+    }
+    .food-img {
+        width: 100%;
+        height: 118px;
+        object-fit: cover;
+        display: block;
+    }
+    .food-body {
+        padding: 10px 12px 2px 12px;
+    }
+    .food-name {
+        font-weight: 700;
+        font-size: 16px;
+        color: #111827;
+    }
+    .food-meta {
+        color: #6b7280;
+        font-size: 12px;
+        margin-top: 2px;
+    }
+    .food-price {
+        color: #9a3412;
+        font-weight: 800;
+        font-size: 16px;
+        margin-top: 8px;
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-st.title(RESTAURANT_NAME)
-st.caption("Online Menu, Billing, PDF Receipt and Sales History")
+st.markdown(
+    f"""
+    <div class="hero-wrap" style="background-image:url('{HERO_IMAGE_URL}')">
+      <div class="hero-overlay">
+        <div>
+          <div class="hero-title">{RESTAURANT_NAME}</div>
+          <div class="hero-subtitle">Online Menu, Billing, PDF Receipt and Sales History</div>
+        </div>
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 order_tab, history_tab = st.tabs(["Order", "Sales History"])
 
@@ -376,24 +462,39 @@ with order_tab:
                 continue
             filtered_items.append(menu_item)
 
-        for menu_item in filtered_items:
-            col_item, col_price, col_qty, col_btn = st.columns([3, 1, 1, 1])
-            col_item.write(f"**{menu_item.name}**")
-            col_item.caption(menu_item.category)
-            col_price.write(money(menu_item.price))
-            qty = col_qty.number_input(
-                "Qty",
-                min_value=1,
-                max_value=99,
-                value=1,
-                key=f"qty_{menu_item.code}",
-                label_visibility="collapsed",
-            )
-            if col_btn.button("Add", key=f"add_{menu_item.code}", use_container_width=True):
-                st.session_state.order[menu_item.code] = st.session_state.order.get(menu_item.code, 0) + int(qty)
-                st.session_state.last_receipt = None
-                st.session_state.last_pdf = None
-                st.rerun()
+        for index in range(0, len(filtered_items), 2):
+            row_items = filtered_items[index : index + 2]
+            card_cols = st.columns(2)
+            for card_col, menu_item in zip(card_cols, row_items):
+                with card_col:
+                    image_url = CATEGORY_IMAGES.get(menu_item.category, HERO_IMAGE_URL)
+                    st.markdown(
+                        f"""
+                        <div class="food-card">
+                          <img class="food-img" src="{image_url}" alt="{menu_item.name}">
+                          <div class="food-body">
+                            <div class="food-name">{menu_item.name}</div>
+                            <div class="food-meta">{menu_item.category}</div>
+                            <div class="food-price">{money(menu_item.price)}</div>
+                          </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    action_cols = st.columns([1, 1])
+                    qty = action_cols[0].number_input(
+                        "Qty",
+                        min_value=1,
+                        max_value=99,
+                        value=1,
+                        key=f"qty_{menu_item.code}",
+                        label_visibility="collapsed",
+                    )
+                    if action_cols[1].button("Add", key=f"add_{menu_item.code}", use_container_width=True):
+                        st.session_state.order[menu_item.code] = st.session_state.order.get(menu_item.code, 0) + int(qty)
+                        st.session_state.last_receipt = None
+                        st.session_state.last_pdf = None
+                        st.rerun()
 
     with right:
         st.subheader("Current Order")
